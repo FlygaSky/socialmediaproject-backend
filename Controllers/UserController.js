@@ -122,10 +122,8 @@ module.exports = {
             let data = req.body
             let query2 = 'SELECT * FROM users WHERE email = ?'
             const findEmail = await query(query2, data.email)
-            .catch((error) => {
-                throw error
-            })
-
+            console.log(findEmail)
+            // if(error) throw error
             if(findEmail.length > 0){
                 throw { message: 'Email already registered' }
             }else{
@@ -158,7 +156,7 @@ module.exports = {
                         })
                     }else {
                          // Step3. Check, apakah token sama dengan yg disimpan di dalam database
-                         db.query('SELECT token FROM users WHERE token = ?', req.headers.authorization, (err, result) => {
+                         db.query('SELECT * FROM users WHERE token = ?', req.headers.authorization, (err, result) => {
                             try {
                                 if(err) throw err 
 
@@ -175,7 +173,12 @@ module.exports = {
 
                                             res.status(200).send({
                                                 error: false, 
-                                                message: 'Your account is active!'
+                                                message: 'Your account is active!',
+                                                myTkn: result1[0].token,
+                                                id: result1[0].id,
+                                                username: result1[0].username,
+                                                email: result1[0].email,
+                                                isVerified: result1[0].is_verified
                                             })
                                         } catch (error) {
                                             res.status(500).send({
@@ -227,7 +230,8 @@ module.exports = {
                                         myTkn: token,
                                         id: result[0].id,
                                         username: result[0].username,
-                                        email: result[0].email
+                                        email: result[0].email,
+                                        isVerified: result[0].is_verified
                                     })
                                 } catch (error) {
                                     res.status(500).send({
@@ -268,7 +272,8 @@ module.exports = {
                                         myTkn: token,
                                         id: result[0].id,
                                         username: result[0].username,
-                                        email: result[0].email
+                                        email: result[0].email,
+                                        isVerified: result[0].is_verified
                                     })
                                 } catch (error) {
                                     res.status(500).send({
@@ -305,25 +310,34 @@ module.exports = {
         }
     },
 
-    checkUserVerify: (req, res) => {
-        let id = req.dataToken.id
-        
-        db.query('SELECT * FROM users WHERE id = ?', id, (err, result) => {
-            try {
-                if(err) throw err 
-                
-                res.status(200).send({
-                    error: false, 
-                    is_confirmed: result[0].is_confirmed
-                })
-            } catch (error) {
-                res.status(500).send({
+    keeplogin: (req, res) => { 
+        try {
+            const idQuery = req.user.id
+            sql = 'SELECT * FROM users WHERE id = ?'
+            db.query(sql, idQuery, (err, result) => {
+                try {;
+                    if(err) throw err
+                    return res.status(200).send({
+                        myTkn: req.headers.authorization,
+                        id: result[0].id,
+                        username: result[0].username,
+                        email: result[0].email,
+                        isVerified: result[0].is_verified
+                    })
+                } catch (error) {
+                    res.status(500).send({
                     error: true, 
                     message: error.message
-                })
-            }
-        })
-    },
+                    })
+                }
+            })
+        } catch (error) {
+            res.status(500).send({
+            error: true, 
+            message: error.message
+            })
+        }
+    }, 
 
     resend: (req, res) => {
 
@@ -355,7 +369,7 @@ module.exports = {
                                             if(err) throw err 
         
                                             const newTemplate = handlebars.compile(file)
-                                            const newTemplateResult = newTemplate({bebas: email, link:`http://localhost:3000/confirmation/${token}`, code_activation: code_activation, link_activation_code: `http://localhost:3000/confirmationcode/${token}`})
+                                            const newTemplateResult = newTemplate({bebas: email, link:`http://localhost:3000/confirmation/${token}`})
         
                                             transporter.sendMail({
                                                 from: 'Upperture', // Sender Address 
