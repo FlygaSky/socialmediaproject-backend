@@ -11,6 +11,7 @@ const storage = multer.diskStorage({
         path.parse(file.originalname).name +
           "-" +
           Date.now() +
+          Math.round(Math.random() * 100000) +
           '.png'
       )
     },

@@ -122,7 +122,6 @@ module.exports = {
             let data = req.body
             let query2 = 'SELECT * FROM users WHERE email = ?'
             const findEmail = await query(query2, data.email)
-            console.log(findEmail)
             // if(error) throw error
             if(findEmail.length > 0){
                 throw { message: 'Email already registered' }
@@ -144,7 +143,7 @@ module.exports = {
     confirmation: (req, res) => {
         // Step1. Get id
         const id = req.dataToken.id 
-            // Step2.1. Check, apakah id nya exist & is_verified masih = 0
+            // Step2. Check, apakah id nya exist & is_verified masih = 0
             db.query('SELECT * FROM users WHERE id = ? AND is_verified = 0', id, (err, result) => {
                 try {
                     if(err) throw err 
@@ -169,25 +168,41 @@ module.exports = {
                                     // Step4. Apabila is_confirmed = 0, update menjadi = 1
                                     db.query('UPDATE users SET is_verified = 1 WHERE id = ?', id, (err1, result1) => {
                                         try {
-                                            if(err) throw err 
-
-                                            res.status(200).send({
-                                                error: false, 
-                                                message: 'Your account is active!',
-                                                myTkn: result1[0].token,
-                                                id: result1[0].id,
-                                                username: result1[0].username,
-                                                email: result1[0].email,
-                                                isVerified: result1[0].is_verified
-                                            })
-                                        } catch (error) {
-                                            res.status(500).send({
-                                                error: true, 
-                                                message: error.message
-                                            })
-                                        }
-                                    })
-                                }
+                                            if(err1) {
+                                                throw err1 
+                                            } else { 
+                                                db.query('INSERT INTO user_detail SET users_id = ?', id, (err2, result2) => {
+                                                try {
+                                                    if(err2) {
+                                                        throw err2 
+                                                    } else { db.query('SELECT * FROM users WHERE id = ?', id, (err3, result3) => {
+                                                        try {
+                                                            if(err3) throw err3 
+                                                            res.status(200).send({
+                                                                error: false, 
+                                                                message: 'Your account is active!',
+                                                                myTkn: result3[0].token,
+                                                                id: result3[0].id,
+                                                                username: result3[0].username,
+                                                                email: result3[0].email,
+                                                                isVerified: result3[0].is_verified
+                                                            })
+                                                        } catch (error) {
+                                                            res.status(500).send({
+                                                                error: true, 
+                                                                message: error.message
+                                                            })
+                                                        }
+                                                    }
+                                                )}
+                                            } catch (error) {
+                                                res.status(500).send({
+                                                    error: true, 
+                                                    message: error.message
+                                                })
+                                            }
+                                        })
+                                    }
                             } catch (error) {
                                 res.status(500).send({
                                     error: true, 
@@ -203,6 +218,14 @@ module.exports = {
                     })
                 }
             }) 
+        } 
+    } catch (error) {
+            res.status(500).send({
+                error: true, 
+                message: error.message
+            })
+        }
+    }) 
     },
 
     login: (req, res) => {
@@ -415,5 +438,117 @@ module.exports = {
                 console.log(error)                
             }
         })
+    },
+
+    getUserDetail: async(req, res) => {
+        try {
+            let data = req.body
+            let query1 = 'SELECT id FROM users WHERE username = ?'
+            const id = await query(query1, data.username)
+            console.log(id[0].id)
+            let query2 = 'SELECT * FROM user_detail WHERE users_id = ?'
+            const userDetail = await query(query2, id[0].id)
+            console.log(userDetail)
+            if(userDetail.length == 0){
+                res.status(201).send({
+                    status: 201,
+                    error: false,
+                    message: 'User detail is still empty'
+                })
+            } else {
+                res.status(201).send({
+                    status: 201,
+                    error: false,
+                    message: 'Get user detail success!',
+                    fullname: userDetail[0].fullname,
+                    bio: userDetail[0].bio,
+                    profilePic: userDetail[0].image
+                })
+            }
+        } catch (error) {
+            res.status(500).send({
+                error: true, 
+                message: error.message
+            })
+        }
+    },
+
+    editUserDetail: async (req, res) => {
+        try {
+                let data = req.body
+                let query1 = 'UPDATE users SET username = ? WHERE id = ?;'
+                let query2 = 'UPDATE user_detail SET fullname = ?, bio = ? WHERE users_id = ?;'
+                await db.query(query1, [data.username, data.users_id])
+                await db.query(query2, [data.fullname, data.bio, data.users_id])
+                let query3 = 'SELECT * FROM users JOIN user_detail ON (users.id = user_detail.users_id) WHERE users.id = ?'
+                db.query(query3, data.users_id, (err1, res1) => {
+                    try {
+                        res.status(200).send({
+                            error: false, 
+                            message: 'Profile details updated!',
+                            username: res1[0].username,
+                            fullname: res1[0].fullname,
+                            bio: res1[0].bio         
+                        })
+                    } catch {
+                        res.status(500).send({
+                            error: true, 
+                            message: err1.message,
+                        })
+                    }
+                })
+            } catch (error) {
+            res.status(500).send({
+                error: true, 
+                message: error.message
+            })
+        }
+    },
+
+    editProfilePic: async(req, res) => {
+        try {
+            let data = req.body
+            let finalImageURL = req.protocol + "://" + req.get("host") + "/uploads/" + req.file.filename
+            let query1 = 'SELECT * FROM user_detail WHERE users_id = ?'
+            const userDetail = await query(query1, data.users_id)
+            if(userDetail.length == 0){
+                let query2 = 'INSERT INTO user_detail (image, users_id) VALUES (?, ?)'
+                db.query(query2, [finalImageURL, data.users_id], (err, result) => {
+                    try {
+                        res.status(200).send({
+                            error: false, 
+                            message: 'Profile picture updated!'
+                        })
+                    } catch (error) {
+                        res.status(500).send({
+                            error: true, 
+                            message: error.message,
+                            image: finalImageURL
+                        })
+                    }
+                })
+            } else {
+                let query3 = 'UPDATE user_detail SET image = ? WHERE users_id = ?'
+                db.query(query3, [finalImageURL, data.users_id], (err, result) => {
+                    try {
+                        res.status(200).send({
+                            error: false, 
+                            message: 'Profile picture updated!',
+                            image: finalImageURL
+                        })
+                    } catch (error) {
+                        res.status(500).send({
+                            error: true, 
+                            message: error.message
+                        })
+                    }
+                })
+            }
+        } catch (error) {
+            res.status(500).send({
+                error: true, 
+                message: error.message
+            })
+        }
     }
 }

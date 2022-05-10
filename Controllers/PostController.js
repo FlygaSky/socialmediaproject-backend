@@ -9,7 +9,7 @@ module.exports = {
     upload: (req, res) => {
         try {
             const data = req.body
-            let finalImageURL = req.protocol + "://" + req.get("host") + "/uploads/" + req.file.filename;
+            let finalImageURL = req.protocol + "://" + req.get("host") + "/uploads/" + req.file.filename
 
             const sqlQuery = 'INSERT INTO posts (image, caption, users_id) VALUES (?, ?, ?);'
             db.query(sqlQuery, [finalImageURL, data.caption, data.users_id], (err, result) => {
