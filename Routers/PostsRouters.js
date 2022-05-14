@@ -6,6 +6,15 @@ const jwtVerify = require('./../Middleware/JWT')
 const multerUpload = require('../Middleware/Multer')
 
 Router.post('/upload', jwtVerify, multerUpload.single("photo"), PostController.upload)
-Router.get('/getAllData', jwtVerify, PostController.getAllData)
+Router.post('/getallposts', jwtVerify, PostController.getAllPosts)
+Router.post('/getownposts', jwtVerify, PostController.getOwnPosts)
+Router.post('/getlikedposts', jwtVerify, PostController.getLikedPosts)
+Router.post('/addlike', jwtVerify, PostController.addLike)
+Router.post('/deletelike', jwtVerify, PostController.deleteLike)
+Router.post('/getpost', jwtVerify, PostController.getPost)
+Router.post('/getcomments', jwtVerify, PostController.getComments)
+Router.post('/postcomment', jwtVerify, PostController.postComment)
+Router.post('/deletepost', jwtVerify, PostController.deletePost)
+Router.post('/editcaption', jwtVerify, PostController.editCaption)
 
 module.exports = Router
