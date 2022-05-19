@@ -157,8 +157,8 @@ module.exports = {
        
             let query5 = `SELECT image FROM user_detail WHERE users_id = ?`;
             for (let i = 0; i < likedPosts.length; i++) {
-                let resultIsLiked = await query(query5, [ownId, likedPosts[i].users_id]);
-                likedPosts[i] = { ...likedPosts[i], profilePic: resultIsLiked[0].image };
+                let resultImage = await query(query5, [likedPosts[i].users_id]);
+                likedPosts[i] = { ...likedPosts[i], profilePic: resultImage[0].image };
             }
             
             res.status(200).send(likedPosts)
